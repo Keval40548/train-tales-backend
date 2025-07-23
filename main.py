@@ -25,7 +25,16 @@ async def get_all_trains():
         }
         response = requests.request("GET", url, headers=headers)
         response.raise_for_status()
-        return response.text
+
+        trains = response.text.split(',')
+
+        for i in range(len(trains)):
+            trains[i] = trains[i][1:len(trains[i])-1]
+
+        return {
+            'trains': trains
+        }
+
     except Exception as e:
         raise HTTPException(status_code=e.status_code, detail=str(e))
 
@@ -44,6 +53,7 @@ async def get_train_schedule(train_number: str):
         response = requests.request("GET", url, headers=headers)
         response.raise_for_status()
         return response.json()
+
     except Exception as e:
         raise HTTPException(status_code=e.status_code, detail=str(e))
 
@@ -60,6 +70,7 @@ async def get_berths_by_train(payload: TrainCompositionSchema):
         response = requests.request("POST", url, headers=headers, json=payload.model_dump())
         response.raise_for_status()
         return response.json()
+
     except Exception as e:
         raise HTTPException(status_code=e.status_code, detail=str(e))
 
@@ -76,6 +87,7 @@ async def get_berths_by_coach(payload: CoachCompositionSchema):
         response = requests.request("POST", url, headers=headers, json=payload.model_dump())
         response.raise_for_status()
         return response.json()
+
     except Exception as e:
         raise HTTPException(status_code=e.status_code, detail=str(e))
 
@@ -92,6 +104,7 @@ async def get_all_avbl_berths(payload: VacantBerthSchema):
         response = requests.request("POST", url, headers=headers, json=payload.model_dump())
         response.raise_for_status()
         return response.json()
+        
     except Exception as e:
         raise HTTPException(status_code=e.status_code, detail=str(e))
 
