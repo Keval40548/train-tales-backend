@@ -1,10 +1,12 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 
+
 class TrainCompositionSchema(BaseModel):
     trainNo: str
     jDate: str
     boardingStation: str
+
 
 class CoachCompositionSchema(BaseModel):
     boardingStation: str
@@ -15,9 +17,8 @@ class CoachCompositionSchema(BaseModel):
     coach: str
     cls: str
 
-    model_config = {
-        "extra": "ignore"
-    }
+    model_config = {"extra": "ignore"}
+
 
 class VacantBerthSchema(BaseModel):
     chartType: Optional[int] = Field(default=1)
@@ -27,10 +28,9 @@ class VacantBerthSchema(BaseModel):
     trainNo: str
     trainSourceStation: str
     boardingStation: str
-    
-    model_config = {
-        "extra": "ignore"
-    }
+
+    model_config = {"extra": "ignore"}
+
 
 class BerthBetweenStationsSchema(BaseModel):
     trainNo: str
