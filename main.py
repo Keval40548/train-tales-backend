@@ -9,6 +9,15 @@ import time
 import json
 import redis.asyncio as redis
 
+import logging
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
+)
+
+logger = logging.getLogger("train-tales")
+
 app = FastAPI()
 
 charting_url = os.environ["CHARTING_URL"]
