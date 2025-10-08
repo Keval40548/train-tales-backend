@@ -7,8 +7,6 @@ import uvicorn
 import os
 import time
 import json
-import redis.asyncio as redis
-
 import logging
 
 logging.basicConfig(
@@ -39,8 +37,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-redis_client = redis.Redis(host="localhost", port=6379, db=0)
 
 
 @app.get("/get_all_trains", tags=["Train Details"])
@@ -96,7 +92,7 @@ async def get_berths_by_train(payload: TrainCompositionSchema):
             "Content-Type": "application/json",
         }
         response = requests.request(
-            "POST", url, headers=headers, json=payload.model_dump(), timeout=60
+            "POST", url, headers=headers, json=payload.model_dump()
         )
         response.raise_for_status()
         return response.json()
@@ -116,8 +112,9 @@ async def get_berths_by_coach(payload: CoachCompositionSchema):
             "Content-Type": "application/json",
         }
         response = requests.request(
-            "POST", url, headers=headers, json=payload.model_dump(), timeout=60
+            "POST", url, headers=headers, json=payload.model_dump()
         )
+
         response.raise_for_status()
         return response.json()
 
@@ -149,7 +146,21 @@ async def get_all_avbl_berths(payload: VacantBerthSchema):
 
 @app.post("/get_berths_between_stations", tags=["Berths"])
 async def get_berths_between_stations(payload: BerthBetweenStationsSchema):
-    print("::::::::::::LANDING TIME: ", datetime.now())
+    landing_time = datetime.now()
+
+    temp_coach_availability = []
+
+    all_avbl_berths = []
+
+    matched_berths = {
+        "avblBerthCount": 0,
+        "isDirect": False,
+        "breakJourneyCnt": 0,
+        "responseTime": "",
+        "responseMessage": "",
+        "berths": [],
+    }
+
     payload = payload.model_dump()
     train_schedule = await get_train_schedule(payload["trainNo"])
     station_codes = {
@@ -166,16 +177,16 @@ async def get_berths_between_stations(payload: BerthBetweenStationsSchema):
         TrainCompositionSchema(**payload)
     )
 
-    temp_coach_availability = []
+    if coach_composition_list["cdd"] is None and coach_composition_list["error"]:
+        matched_berths["responseMessage"] = coach_composition_list["error"]
 
-    all_avbl_berths = []
+        seconds = int((datetime.now() - landing_time).total_seconds())
+        hours, remainder = divmod(seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        matched_berths["responseTime"] = f"{hours:02}:{minutes:02}:{seconds:02}"
 
-    matched_berths = {
-        "avbl_berth_count": 0,
-        "is_direct": False,
-        "berths": [],
-        "errorMessage": "",
-    }
+        print("::::::::::::RESPONSE TIME: ", matched_berths["responseTime"])
+        return matched_berths
 
     for coach in coach_composition_list["cdd"]:
         is_ac_coach = payload["isAC"] and coach["classCode"] not in ["SL", "2S"]
@@ -234,15 +245,25 @@ async def get_berths_between_stations(payload: BerthBetweenStationsSchema):
                 matched_berths["berths"].append(berth)
 
     if not len(matched_berths.get("berths")):
-        matched_berths["is_direct"] = False
+        matched_berths["isDirect"] = False
         for berth in all_avbl_berths:
             berth["distance"] = (
                 station_distance_list[berth["to"]]
                 - station_distance_list[berth["from"]]
             )
     else:
-        matched_berths["avbl_berth_count"] = len(matched_berths["berths"])
-        matched_berths["is_direct"] = True
+        matched_berths["avblBerthCount"] = len(matched_berths["berths"])
+        matched_berths["isDirect"] = True
+
+        seconds = int((datetime.now() - landing_time).total_seconds())
+        hours, remainder = divmod(seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        matched_berths["responseTime"] = f"{hours:02}:{minutes:02}:{seconds:02}"
+        matched_berths["responseMessage"] = (
+            "Direct berths found between given pair of statons"
+        )
+        print("::::::::::::RESPONSE TIME: ", matched_berths["responseTime"])
+
         return matched_berths
 
     # Finds seat(s) with break-journeys
@@ -289,17 +310,27 @@ async def get_berths_between_stations(payload: BerthBetweenStationsSchema):
                 break
 
         elif int(station_codes[matched_berths["berths"][-1]["to"]]) >= int(
-            temp_destination_stn_number
+            temp_boarding_stn_number
         ):
             break
 
-    if len(matched_berths):
-        matched_berths["avbl_berth_count"] = len(matched_berths["berths"])
-        matched_berths["errorMessage"] = "Berths found with break journeys"
+    if temp_boarding_stn_number <= payload["destinationStationNumber"]:
+        matched_berths["avblBerthCount"] = len(matched_berths["berths"])
+        matched_berths["responseMessage"] = (
+            "Berths could not be found between given pair of stations"
+        )
+    elif len(matched_berths["berths"]):
+        matched_berths["breakJourneyCnt"] = len(matched_berths["berths"])
+        matched_berths["responseMessage"] = "Berths found with break journeys"
     else:
-        matched_berths["errorMessage"] = "No matching berths found"
+        matched_berths["responseMessage"] = "No matching berths found"
 
-    print("::::::::::::RESPONSE TIME: ", datetime.now())
+    seconds = int((datetime.now() - landing_time).total_seconds())
+    hours, remainder = divmod(seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    matched_berths["responseTime"] = f"{hours:02}:{minutes:02}:{seconds:02}"
+
+    print("::::::::::::RESPONSE TIME: ", matched_berths["responseTime"])
     return matched_berths
 
 
