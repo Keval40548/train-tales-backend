@@ -61,8 +61,10 @@ async def get_all_trains():
 
         return {"trains": trains}
 
+    except requests.exceptions.HTTPError as e:
+        raise HTTPException(status_code=e.response.status_code, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=e.status_code, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/get_train_schedule/{train_number}", tags=["Train Details"])
@@ -79,8 +81,10 @@ async def get_train_schedule(train_number: str):
         response.raise_for_status()
         return response.json()
 
+    except requests.exceptions.HTTPError as e:
+        raise HTTPException(status_code=e.response.status_code, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=e.status_code, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/get_berths_by_train", tags=["Berths"])
@@ -97,8 +101,10 @@ async def get_berths_by_train(payload: TrainCompositionSchema):
         response.raise_for_status()
         return response.json()
 
+    except requests.exceptions.HTTPError as e:
+        raise HTTPException(status_code=e.response.status_code, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=e.status_code, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/get_berths_by_coach", tags=["Berths"])
@@ -115,8 +121,10 @@ async def get_berths_by_coach(payload: CoachCompositionSchema):
         response.raise_for_status()
         return response.json()
 
+    except requests.exceptions.HTTPError as e:
+        raise HTTPException(status_code=e.response.status_code, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=e.status_code, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/get_all_avbl_berths", tags=["Berths"])
@@ -133,8 +141,10 @@ async def get_all_avbl_berths(payload: VacantBerthSchema):
         response.raise_for_status()
         return response.json()
 
+    except requests.exceptions.HTTPError as e:
+        raise HTTPException(status_code=e.response.status_code, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=e.status_code, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/get_berths_between_stations", tags=["Berths"])
