@@ -47,28 +47,40 @@ async def get_all_avbl_berths(payload: VacantBerthSchema):
 async def get_berths_between_stations(payload: BerthBetweenStationsSchema):
     landing_time = datetime.now()
 
-    matched_berths_interface = {
-        "avblBerthCount": 0,
-        "isDirect": False,
-        "breakJourneyCnt": 0,
-        "responseTime": "",
-        "responseMessage": "",
-        "berths": [],
-    }
+    payload = payload.model_dump()
 
-    train_url = f"{envVariables['charting_url']}/trainComposition"
+    try:
+        if not (payload["isAC"] or payload["isNonAC"]):
+            raise HTTPException(
+                status_code=400,
+                detail="At least one coach type must be selected — either AC or Non-AC!",
+            )
 
-    coach_url = f"{envVariables['charting_url']}/coachComposition"
+        matched_berths_interface = {
+            "avblBerthCount": 0,
+            "isDirect": False,
+            "breakJourneyCnt": 0,
+            "responseTime": "",
+            "responseMessage": "",
+            "berths": [],
+        }
 
-    matched_berths = await get_berths_between_stations_service(
-        train_url=train_url,
-        coach_url=coach_url,
-        headers=headers,
-        matched_berths=matched_berths_interface,
-        payload=payload,
-    )
+        train_url = f"{envVariables['charting_url']}/trainComposition"
 
-    matched_berths["responseTime"] = calc_elapsed_time(landing_time)
+        coach_url = f"{envVariables['charting_url']}/coachComposition"
 
-    print("::::::::::::Response Time: ", matched_berths["responseTime"])
-    return matched_berths
+        matched_berths = await get_berths_between_stations_service(
+            train_url=train_url,
+            coach_url=coach_url,
+            headers=headers,
+            matched_berths=matched_berths_interface,
+            payload=payload,
+        )
+
+        matched_berths["responseTime"] = calc_elapsed_time(landing_time)
+
+        print("::::::::::::Response Time: ", matched_berths["responseTime"])
+        return matched_berths
+
+    except HTTPException as e:
+        raise e

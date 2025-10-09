@@ -62,7 +62,6 @@ async def get_berths_between_stations_service(
 
     all_avbl_berths = []
 
-    payload = payload.model_dump()
     train_schedule = await get_train_schedule(payload["trainNo"], False)
     station_codes = {
         station["stationCode"]: station["stnSerialNumber"]
