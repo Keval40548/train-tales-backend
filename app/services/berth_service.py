@@ -2,6 +2,7 @@ from fastapi import HTTPException
 from app.api.trains_routes import get_train_schedule
 from app.services.common import *
 from app.schemas.berth_schema import *
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
 import logging
 
@@ -62,6 +63,8 @@ async def get_berths_between_stations_service(
 
     all_avbl_berths = []
 
+    coach_composition_payloads = []
+
     train_schedule = await get_train_schedule(payload["trainNo"], False)
     station_codes = {
         station["stationCode"]: station["stnSerialNumber"]
@@ -87,27 +90,42 @@ async def get_berths_between_stations_service(
         is_non_ac_coach = payload["isNonAC"] and coach["classCode"] in ["SL", "2S"]
 
         if is_ac_coach or is_non_ac_coach:
-            coach_composition_payload = {
-                "trainNo": payload["trainNo"],
-                "jDate": payload["jDate"],
-                "boardingStation": payload["boardingStation"],
-                "remoteStation": train_schedule["stationList"][0]["stationCode"],
-                "trainSourceStation": train_schedule["stationList"][0]["stationCode"],
-                "coach": coach["coachName"],
-                "cls": coach["classCode"],
-            }
-
-            temp_coach_availability = get_berths_by_coach_service(
-                url=coach_url,
-                headers=headers,
-                payload=CoachCompositionSchema(**coach_composition_payload),
+            coach_composition_payloads.append(
+                {
+                    "trainNo": payload["trainNo"],
+                    "jDate": payload["jDate"],
+                    "boardingStation": payload["boardingStation"],
+                    "remoteStation": train_schedule["stationList"][0]["stationCode"],
+                    "trainSourceStation": train_schedule["stationList"][0][
+                        "stationCode"
+                    ],
+                    "coach": coach["coachName"],
+                    "cls": coach["classCode"],
+                }
             )
 
-            temp_coach_availability["bdd"] = [
-                {**seat, "coach": coach_composition_payload["coach"]}
-                for seat in temp_coach_availability["bdd"]
-            ]
-            all_avbl_berths.append(temp_coach_availability["bdd"])
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures_to_payload_map = {
+            executor.submit(
+                get_berths_by_coach_service,
+                coach_url,
+                headers,
+                CoachCompositionSchema(**payload),
+            ): payload
+            for payload in coach_composition_payloads
+        }
+
+        for future in as_completed(futures_to_payload_map):
+            current_payload = futures_to_payload_map[future]
+            try:
+                temp_coach_availability = future.result()
+                temp_coach_availability["bdd"] = [
+                    {**seat, "coach": current_payload["coach"]}
+                    for seat in temp_coach_availability["bdd"]
+                ]
+                all_avbl_berths.append(temp_coach_availability["bdd"])
+            except Exception as e:
+                logger.debug(f"Skipping {current_payload['coach']} due to error: {e}")
 
     all_avbl_berths = {
         "avbl_berths": [item for sublist in all_avbl_berths for item in sublist]
