@@ -3,6 +3,7 @@ from app.core.config import envVariables
 from app.services.trains_service import *
 from app.services.common import *
 from datetime import datetime
+from typing import Optional
 import time
 
 trains = APIRouter()
@@ -23,7 +24,7 @@ async def get_all_trains():
 
 
 @trains.get("/get_train_schedule/{train_number}", tags=["Train Details"])
-async def get_train_schedule(train_number: str):
+async def get_train_schedule(train_number: str, print_time: Optional[bool] = True):
     landing_time = datetime.now()
     url = f"{envVariables['schedule_url']}/protected/mapps1/trnscheduleenquiry/{train_number}"
     headers = {
@@ -35,5 +36,6 @@ async def get_train_schedule(train_number: str):
 
     response = get_train_schedule_service(url, headers)
 
-    print("::::::::::::Response Time: ", calc_elapsed_time(landing_time))
+    if print_time:
+        print("::::::::::::Response Time: ", calc_elapsed_time(landing_time))
     return response
