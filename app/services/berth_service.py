@@ -5,6 +5,7 @@ from app.schemas.berth_schema import *
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
 import logging
+import time
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -76,6 +77,8 @@ async def get_berths_between_stations_service(
         for station in train_schedule["stationList"]
     }
 
+    time.sleep(0.5)
+
     coach_composition_list = get_berths_by_train_service(
         url=train_url, headers=headers, payload=TrainCompositionSchema(**payload)
     )
@@ -127,26 +130,23 @@ async def get_berths_between_stations_service(
             except Exception as e:
                 logger.debug(f"Skipping {current_payload['coach']} due to error: {e}")
 
-    all_avbl_berths = {
-        "avbl_berths": [item for sublist in all_avbl_berths for item in sublist]
-    }
-
-    all_avbl_berths = [
+    all_avbl_berths = list(
         {
-            "cabinCoupe": element["cabinCoupe"],
-            "coach": element["coach"],
-            "berthCode": element["berthCode"],
-            "berthNo": element["berthNo"],
-            "splitNo": berth["splitNo"],
-            "from": berth["from"],
-            "to": berth["to"],
-            "quota": berth["quota"],
-            "occupancy": berth["occupancy"],
+            "cabinCoupe": e["cabinCoupe"],
+            "coach": e["coach"],
+            "berthCode": e["berthCode"],
+            "berthNo": e["berthNo"],
+            "splitNo": b["splitNo"],
+            "from": b["from"],
+            "to": b["to"],
+            "quota": b["quota"],
+            "occupancy": b["occupancy"],
         }
-        for element in all_avbl_berths["avbl_berths"]
-        for berth in element["bsd"]
-        if not berth["occupancy"]
-    ]
+        for sublist in all_avbl_berths
+        for e in sublist
+        for b in e["bsd"]
+        if not b["occupancy"]
+    )
 
     if len(all_avbl_berths):
         for berth in all_avbl_berths:
