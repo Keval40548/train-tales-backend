@@ -132,20 +132,20 @@ async def get_berths_between_stations_service(
 
     all_avbl_berths = list(
         {
-            "cabinCoupe": e["cabinCoupe"],
-            "coach": e["coach"],
-            "berthCode": e["berthCode"],
-            "berthNo": e["berthNo"],
-            "splitNo": b["splitNo"],
-            "from": b["from"],
-            "to": b["to"],
-            "quota": b["quota"],
-            "occupancy": b["occupancy"],
+            "cabinCoupe": berth["cabinCoupe"],
+            "coach": berth["coach"],
+            "berthCode": berth["berthCode"],
+            "berthNo": berth["berthNo"],
+            "splitNo": berthSplit["splitNo"],
+            "from": berthSplit["from"],
+            "to": berthSplit["to"],
+            "quota": berthSplit["quota"],
+            "occupancy": berthSplit["occupancy"],
         }
-        for sublist in all_avbl_berths
-        for e in sublist
-        for b in e["bsd"]
-        if not b["occupancy"]
+        for coach in all_avbl_berths
+        for berth in coach
+        for berthSplit in berth["bsd"]
+        if not berthSplit["occupancy"]
     )
 
     if len(all_avbl_berths):
