@@ -34,8 +34,9 @@ async def get_train_schedule(train_number: str, print_time: Optional[bool] = Tru
         "bmirak": "webbm",
     }
 
-    response = get_train_schedule_service(url, headers)
+    response = await get_train_schedule_service(url, headers, train_number)
 
     if print_time:
         print("::::::::::::Response Time: ", calc_elapsed_time(landing_time))
+
     return response
