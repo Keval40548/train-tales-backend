@@ -39,9 +39,10 @@ async def get_train_schedule_service(url, headers, train_number):
             response.raise_for_status()
             response = response.json()
             try:
-                await set_redis_hash(
-                    "train_schedules", train_number, json.dumps(response), 43200
-                )
+                if response.get("stationList"):
+                    await set_redis_hash(
+                        "train_schedules", train_number, json.dumps(response), 43200
+                    )
             except Exception as e:
                 print(
                     f"Unable to set schedule of {train_number} to Redis due to error: {e}"
