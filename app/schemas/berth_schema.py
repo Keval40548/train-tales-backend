@@ -39,5 +39,6 @@ class BerthBetweenStationsSchema(BaseModel):
     boardingStationNumber: int
     destinationStation: str
     destinationStationNumber: int
+    numberOfPassengers: int = Field(..., ge=1, le=6)
     isAC: bool = Field(default=True)
     isNonAC: bool = Field(default=True)

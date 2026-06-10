@@ -73,7 +73,7 @@ async def get_berths_between_stations(payload: BerthBetweenStationsSchema):
             train_url=train_url,
             coach_url=coach_url,
             headers=headers,
-            matched_berths=matched_berths_interface,
+            all_matched_berths=matched_berths_interface,
             payload=payload,
         )
 
